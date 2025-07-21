@@ -42,10 +42,43 @@ document.getElementById('checkoutForm').addEventListener('submit', async functio
         pixArea.style.display = 'block';
         form.style.display = 'none';
 
-        // Em um cenário real, você teria uma forma de monitorar o status do pagamento,
-        // seja por polling (requisições repetidas para uma API sua que verifica o status)
-        // ou, idealmente, por WebSockets para receber atualizações do backend (disparadas por webhook).
-        // Para este exemplo simples, não implementaremos o monitoramento contínuo aqui.
+               pixArea.style.display = 'block';
+        form.style.display = 'none';
+
+        // --- Começa a monitorar o status do pagamento (polling) ---
+        // Você precisa do orderId que o backend retornou
+        const checkPaymentStatus = async (orderId) => {
+            try {
+                // Seu backend precisaria de uma nova rota: /api/check-payment-status?orderId=...
+                const statusResponse = await fetch(`/api/check-payment-status?orderId=${orderId}`);
+                if (!statusResponse.ok) throw new Error('Falha ao verificar status');
+                const statusData = await statusResponse.json();
+
+                if (statusData.status === 'paid') {
+                    paymentStatus.textContent = "✅ Pagamento Confirmado! Redirecionando...";
+                    paymentStatus.style.color = '#00a86b';
+                    clearInterval(pollInterval); // Para o polling
+                    setTimeout(() => {
+                        window.location.href = '/sucesso-pagamento.html'; // Redireciona para página de sucesso
+                    }, 3000);
+                } else if (statusData.status === 'cancelled' || statusData.status === 'expired' || statusData.status === 'failed_gateway_call') {
+                    paymentStatus.textContent = `❌ Pagamento ${statusData.status}! Por favor, tente novamente.`;
+                    paymentStatus.style.color = '#dc3545';
+                    clearInterval(pollInterval); // Para o polling
+                } else {
+                    paymentStatus.textContent = "Aguardando pagamento...";
+                    paymentStatus.style.color = '#007bff';
+                }
+            } catch (error) {
+                console.error('Erro ao verificar status do pagamento:', error);
+                paymentStatus.textContent = "Erro ao verificar status. Por favor, recarregue a página.";
+                paymentStatus.style.color = '#ffc107';
+                clearInterval(pollInterval);
+            }
+        };
+
+        // Iniciar polling a cada 3 segundos
+        const pollInterval = setInterval(() => checkPaymentStatus(pixData.orderId), 3000);
 
     } catch (error) {
         console.error('Erro ao gerar PIX:', error);

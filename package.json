@@ -3,13 +3,20 @@
   "version": "1.0.0",
   "main": "api/create-pix-payment.js",
   "scripts": {
-    "start": "vercel dev"
+    "start": "vercel dev",
+    "postinstall": "prisma generate",
+    "db:migrate": "dotenv -e .env -- npx prisma migrate dev",
+    "db:generate": "dotenv -e .env -- npx prisma generate",
+    "db:push": "dotenv -e .env -- npx prisma db push"
   },
   "dependencies": {
-    "axios": "^1.7.2",
-    "dotenv": "^16.4.5"
+    "@prisma/client": "^6.12.0",
+    "axios": "^1.7.2"
+  
   },
   "devDependencies": {
-    "vercel": "^35.0.0"
+    "dotenv-cli": "^8.0.0",
+    "prisma": "^6.12.0",
+    "vercel": "^32.0.1"
   }
 }

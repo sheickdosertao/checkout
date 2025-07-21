@@ -1,100 +1,112 @@
 // api/create-pix-payment.js
-
-// Importe axios se você decidir usá-lo em vez de fetch nativo,
-// caso contrário, não precisa importar nada para o fetch nativo (Node.js 18+)
-// const axios = require('axios'); // Se preferir axios, descomente esta linha e remova 'fetch'
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient(); // Inicializa o Prisma Client
+const axios = require('axios'); // Vamos manter axios, pois é robusto e amplamente usado
 
 module.exports = async (req, res) => {
-    // As variáveis de ambiente da Vercel são acessadas via process.env
     const url = process.env.BLACKCAT_API_URL || 'https://api.blackcatpagamentos.com/v1';
     const publicKey = process.env.BLACKCAT_PUBLIC_KEY;
     const secretKey = process.env.BLACKCAT_SECRET_KEY;
+    const yourAppUrl = process.env.YOUR_APP_URL; // Seu domínio na Vercel
 
-    // A Vercel já faz o parsing do JSON para você em `req.body`
     const { amount, description, nome, email, cpfCnpj } = req.body;
 
-    // --- Validações básicas (adicione mais validações em produção!) ---
+    // --- Validações ---
     if (!amount || !description || !nome || !email || !cpfCnpj) {
         return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
     }
     if (amount <= 0) {
         return res.status(400).json({ error: 'O valor deve ser positivo.' });
     }
-    // Adicione validação de formato de email, CPF/CNPJ, etc.
+    if (!publicKey || !secretKey || !yourAppUrl) {
+        console.error("Variáveis de ambiente incompletas para BlackCat ou YOUR_APP_URL.");
+        return res.status(500).json({ error: 'Configuração do gateway de pagamento ou URL de retorno incompleta.' });
+    }
 
     try {
-        // --- Criando a autenticação Basic ---
-        // Certifique-se de que publicKey e secretKey estão definidos nas variáveis de ambiente da Vercel.
-        if (!publicKey || !secretKey) {
-            console.error("Chaves de API da BlackCat não configuradas nas variáveis de ambiente.");
-            return res.status(500).json({ error: 'Configuração do gateway de pagamento incompleta.' });
-        }
         const auth = 'Basic ' + Buffer.from(publicKey + ':' + secretKey).toString('base64');
 
-        // --- Payload para a BlackCat Pagamentos ---
-        // Adapte os campos `customer`, `items`, etc., conforme a documentação da BlackCat.
+        // --- 1. Criar um registro de pedido no seu banco de dados (status pendente) ---
+        // Isso é crucial ANTES de chamar o gateway, caso a chamada falhe.
+        const newOrder = await prisma.order.create({
+            data: {
+                // transactionId será preenchido após a resposta do gateway
+                amount: amount,
+                description: description,
+                customerName: nome,
+                customerEmail: email,
+                customerCpfCnpj: cpfCnpj,
+                status: 'pending' // Estado inicial
+            }
+        });
+
+        // --- 2. Payload para a BlackCat Pagamentos ---
         const payload = {
-            amount: amount, // O valor em centavos já vem do seu frontend
+            amount: amount,
             paymentMethod: 'pix',
             description: description,
-            customer: { // Exemplo de estrutura, verifique a doc da BlackCat
+            customer: {
                 name: nome,
                 email: email,
                 document: {
-                    type: cpfCnpj.length === 11 ? 'CPF' : 'CNPJ', // Lógica simples para determinar tipo
-                    number: cpfCnpj.replace(/\D/g, '') // Remove caracteres não numéricos
+                    type: cpfCnpj.length === 11 ? 'CPF' : 'CNPJ',
+                    number: cpfCnpj.replace(/\D/g, '')
                 }
             },
-            // Adicione aqui outros campos que a BlackCat Pagamentos exige
-            // como `notificationUrl` para o webhook. Por exemplo:
-            notificationUrl: `${process.env.YOUR_APP_URL}/api/pix-webhook`
-            // Ou `expirationTimeInMinutes`
+            // IMPORTANTE: Use a URL completa da sua Serverless Function de webhook.
+            // A BlackCat precisará saber onde te enviar as notificações.
+            notificationUrl: `${yourAppUrl}/api/pix-webhook?orderId=${newOrder.id}`, // Passa o ID do seu pedido
+            // Adicione aqui outros campos exigidos pela BlackCat, como expiry_time, etc.
         };
 
-        // --- Requisição POST para a API da BlackCat Pagamentos ---
-        const response = await fetch(url, { // Ou axios.post(url, payload, { headers: ... }) se usar axios
-            method: 'POST',
+        // --- 3. Requisição POST para a API da BlackCat Pagamentos ---
+        const gatewayResponse = await axios.post(url, payload, {
             headers: {
                 Authorization: auth,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(payload),
         });
 
-        // Verificação se a resposta foi bem-sucedida (status 2xx)
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Erro na resposta da BlackCat:', errorData);
-            // Lança um erro para ser pego no bloco catch
-            throw new Error(`Erro do Gateway de Pagamento: ${errorData.message || JSON.stringify(errorData)}`);
-        }
+        const blackCatData = gatewayResponse.data;
+        console.log('Resposta da BlackCat:', blackCatData);
 
-        const data = await response.json();
-        console.log('Resposta da BlackCat:', data);
+        // --- 4. Extrair dados do PIX e atualizar o pedido no DB ---
+        // VERIFIQUE A DOCUMENTAÇÃO DA BLACKCAT PARA OS NOMES EXATOS!
+        const qrCodeImageBase64 = blackCatData.qrCode || blackCatData.pix.qrCodeImage;
+        const pixCopiaECola = blackCatData.qrCodeText || blackCatData.pix.copyPasteCode;
+        const transactionId = blackCatData.id || blackCatData.transactionId; // ID da transação na BlackCat
 
-        // --- Extrair dados do PIX da resposta da BlackCat ---
-        // Os nomes das propriedades abaixo (`qrCode`, `qrCodeText`, `transactionId`)
-        // são exemplos. Você PRECISA consultar a documentação da API da BlackCat
-        // para saber os nomes EXATOS das propriedades que contêm o QR Code e o código copia e cola.
-        const qrCodeImageBase64 = data.qrCode || data.pix.qrCodeImage; // Exemplo de como a BlackCat pode retornar
-        const pixCopiaECola = data.qrCodeText || data.pix.copyPasteCode; // Exemplo de como a BlackCat pode retornar
-        const transactionId = data.id || data.transactionId; // ID da transação na BlackCat
+        await prisma.order.update({
+            where: { id: newOrder.id },
+            data: {
+                transactionId: transactionId,
+                status: 'awaiting_pix_payment' // Novo status, mais específico
+            }
+        });
 
-        // --- Salvar o status do pedido no seu banco de dados (externo) ---
-        // Aqui você salvaria o 'transactionId', 'amount', 'status: "pending"',
-        // etc. no seu DB.
-        console.log(`PIX gerado. ID da Transação na BlackCat: ${transactionId}`);
-        // Ex: await db.saveOrder({ transactionId, amount, status: 'pending', customerId, ... });
-
-        // Retorna os dados do PIX para o frontend
+        // 5. Retorna os dados do PIX para o frontend
         res.status(200).json({
             qrCodeImageBase64: qrCodeImageBase64,
             pixCopiaECola: pixCopiaECola,
-            transactionId: transactionId
+            transactionId: transactionId,
+            orderId: newOrder.id // Retorna o ID do seu pedido também
         });
 
     } catch (error) {
-        console.error('Erro na requisição para a BlackCat:', error);
+        console.error('Erro na requisição para a BlackCat ou DB:', error.response ? error.response.data : error.message);
+
+        // Se o pedido foi criado no DB, mas a chamada à BlackCat falhou,
+        // você pode querer atualizar o status do pedido para 'failed_creation' ou similar.
+        if (newOrder && newOrder.id) {
+            await prisma.order.update({
+                where: { id: newOrder.id },
+                data: { status: 'failed_gateway_call' }
+            }).catch(dbErr => console.error('Erro ao atualizar status do pedido após falha no gateway:', dbErr));
+        }
+
         res.status(500).json({ error: 'Erro ao gerar pagamento PIX. Por favor, tente novamente mais tarde.' });
+    } finally {
+        // Garante que a conexão com o banco de dados seja desconectada
+        await prisma.$disconnect();
     }
 };
