@@ -4,7 +4,7 @@ const prisma = new PrismaClient(); // Inicializa o Prisma Client
 const axios = require('axios'); // Vamos manter axios, pois é robusto e amplamente usado
 
 module.exports = async (req, res) => {
-    const url = process.env.BLACKCAT_API_URL || 'https://api.blackcatpagamentos.com/v1';
+    const url = process.env.BLACKCAT_API_URL || 'https://api.blackcatpagamentos.com/v1/transactions';
     const publicKey = process.env.BLACKCAT_PUBLIC_KEY;
     const secretKey = process.env.BLACKCAT_SECRET_KEY;
     const yourAppUrl = process.env.YOUR_APP_URL; // Seu domínio na Vercel
