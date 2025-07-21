@@ -4,7 +4,7 @@
   "main": "api/create-pix-payment.js",
   "scripts": {
     "start": "vercel dev",
-    "postinstall": "prisma generate",
+    "postinstall": "npx prisma generate",
     "db:migrate": "dotenv -e .env -- npx prisma migrate dev",
     "db:generate": "dotenv -e .env -- npx prisma generate",
     "db:push": "dotenv -e .env -- npx prisma db push"
