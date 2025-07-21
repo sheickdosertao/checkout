@@ -6,7 +6,7 @@
 
 module.exports = async (req, res) => {
     // As variáveis de ambiente da Vercel são acessadas via process.env
-    const url = process.env.BLACKCAT_API_URL || 'https://api.blackcatpagamentos.com/v1/transactions';
+    const url = process.env.BLACKCAT_API_URL || 'https://api.blackcatpagamentos.com/v1';
     const publicKey = process.env.BLACKCAT_PUBLIC_KEY;
     const secretKey = process.env.BLACKCAT_SECRET_KEY;
 
