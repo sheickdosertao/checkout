@@ -3,6 +3,9 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient(); // Inicializa o Prisma Client
 
 module.exports = async (req, res) => {
+     if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Método não permitido. Use POST.' });
+    }
     const webhookData = req.body;
     const orderId = req.query.orderId; // Se você passou o orderId na URL do webhook
 

@@ -5,8 +5,9 @@ document.getElementById('checkoutForm').addEventListener('submit', async functio
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
 
-    data.amount = 15000; // R$ 150,00 em centavos (exemplo)
-    data.description = "Pedido #12345 - Produto Exemplo";
+   const valor = parseFloat(formData.get('valor'));
+   data.amount = Math.round(valor * 100); // valor em centavos
+   data.description = `Adicionar saldo de R$ ${valor.toFixed(2)}`;
 
     const loadingSpinner = document.getElementById('loadingSpinner');
     const pixArea = document.getElementById('pix-area');
@@ -28,12 +29,20 @@ document.getElementById('checkoutForm').addEventListener('submit', async functio
             body: JSON.stringify(data)
         });
 
+        let pixData;
         if (!response.ok) {
-            const errorData = await response.json();
+            const text = await response.text();
+            console.error('Resposta do backend:', text);
+            let errorData;
+            try {
+                errorData = JSON.parse(text);
+            } catch {
+                errorData = { error: text };
+            }
             throw new Error(`Erro ao gerar PIX: ${errorData.error || response.statusText}`);
+        } else {
+            pixData = await response.json();
         }
-
-        const pixData = await response.json();
 
         qrCodeImage.src = pixData.qrCodeImageBase64;
         pixCodeInput.value = pixData.pixCopiaECola;
@@ -42,8 +51,10 @@ document.getElementById('checkoutForm').addEventListener('submit', async functio
         pixArea.style.display = 'block';
         form.style.display = 'none';
 
-               pixArea.style.display = 'block';
+        pixArea.style.display = 'block';
         form.style.display = 'none';
+
+       
 
         // --- Começa a monitorar o status do pagamento (polling) ---
         // Você precisa do orderId que o backend retornou

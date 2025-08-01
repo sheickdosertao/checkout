@@ -12,6 +12,9 @@ module.exports = async (req, res) => {
     const { amount, description, nome, email, cpfCnpj } = req.body;
 
     // --- Validações ---
+     if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Método não permitido. Use POST.' });
+    }
     if (!amount || !description || !nome || !email || !cpfCnpj) {
         return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
     }

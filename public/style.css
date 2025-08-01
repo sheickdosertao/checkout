@@ -16,3 +16,6 @@ form input[type="text"], form input[type="email"] { width: 100%; padding: 10px; 
 #copy-button:hover { background-color: #008f5a; }
 .loading { display: none; text-align: center; margin-top: 20px; font-style: italic; color: #666; }
 #payment-status { margin-top: 20px; font-weight: bold; color: #007bff; }
+#pix-area {
+  display: none;
+}

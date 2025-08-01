@@ -11,36 +11,29 @@
     <div class="container">
         <h1>Seu Checkout Personalizado</h1>
 
-        <div class="product-list">
-            <h2>Seus Produtos</h2>
-            <div class="product-item">
-                <span>Produto Exemplo</span>
-                <span>R$ 150,00</span>
-            </div>
-            <div class="product-item">
-                <strong>Total:</strong>
-                <strong>R$ 150,00</strong>
-            </div>
-        </div>
+       
 
-        <form id="checkoutForm">
-            <h2>Dados para Pagamento</h2>
-            <p>
-                <label for="nome">Nome Completo:</label>
-                <input type="text" id="nome" name="nome" required>
-            </p>
-            <p>
-                <label for="email">E-mail:</label>
-                <input type="email" id="email" name="email" required>
-            </p>
-            <p>
-                <label for="cpfCnpj">CPF/CNPJ:</label>
-                <input type="text" id="cpfCnpj" name="cpfCnpj" required>
-            </p>
-
-            <button type="submit" class="button">Gerar Pagamento PIX</button>
-            <div class="loading" id="loadingSpinner">Carregando...</div>
-        </form>
+       <form id="checkoutForm">
+    <h2>Dados para Pagamento</h2>
+    <p>
+        <label for="valor">Valor (R$):</label>
+        <input type="number" id="valor" name="valor" min="10" step="0.01" required>
+    </p>
+    <p>
+        <label for="nome">Nome Completo:</label>
+        <input type="text" id="nome" name="nome" required>
+    </p>
+    <p>
+        <label for="email">E-mail:</label>
+        <input type="email" id="email" name="email" required>
+    </p>
+    <p>
+        <label for="cpfCnpj">CPF/CNPJ:</label>
+        <input type="text" id="cpfCnpj" name="cpfCnpj" required>
+    </p>
+    <button type="submit" class="button">Gerar Pagamento PIX</button>
+    <div class="loading" id="loadingSpinner">Carregando...</div>
+</form>
 
         <div id="pix-area">
             <h2>Pagar com PIX</h2>
