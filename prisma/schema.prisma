@@ -10,14 +10,14 @@ datasource db {
 }
 
 model Order {
-  id            String    @id @default(cuid()) // ID interno do seu pedido
-  transactionId String    @unique // ID da transação no gateway (BlackCat)
-  amount        Int
-  description   String?
-  customerName  String
-  customerEmail String
-  customerCpfCnpj String
-  status        String    @default("pending") // pending, paid, cancelled, expired
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id               String   @id @default(uuid())
+  transactionId    String?  @unique // O ? permite valor nulo
+  amount           Int
+  description      String?
+  customerName     String
+  customerEmail    String
+  customerCpfCnpj  String
+  status           String   @default("pending")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
