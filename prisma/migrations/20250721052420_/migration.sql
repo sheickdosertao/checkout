@@ -1,7 +1,7 @@
 -- CreateTable
 CREATE TABLE "Order" (
     "id" TEXT NOT NULL,
-    "transactionId" TEXT NOT NULL,
+    "transactionId" TEXT,
     "amount" INTEGER NOT NULL,
     "description" TEXT,
     "customerName" TEXT NOT NULL,

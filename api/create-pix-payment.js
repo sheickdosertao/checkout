@@ -39,7 +39,8 @@ module.exports = async (req, res) => {
                 customerName: nome,
                 customerEmail: email,
                 customerCpfCnpj: cpfCnpj,
-                status: 'pending' // Estado inicial
+                status: 'pending', // Estado inicial
+                transactionId: null
             }
         });
 
